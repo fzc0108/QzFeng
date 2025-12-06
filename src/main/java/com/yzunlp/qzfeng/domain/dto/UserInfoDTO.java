@@ -18,6 +18,7 @@ public class UserInfoDTO {
     private Short sex; // 用户的性别，男1，女2
     private Long areaCode; // 用户所在地区编码
 
+
     public UserInfoDTO() {
     }
 
@@ -29,5 +30,6 @@ public class UserInfoDTO {
         this.birthday = birthday;
         this.sex = sex;
         this.areaCode = areaCode;
+
     }
 }

@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
+import lombok.Builder;
 
 import java.time.LocalDateTime;
 
@@ -12,6 +13,7 @@ import java.time.LocalDateTime;
  * @since 2025/6/25 23:19
  */
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserPropolis {

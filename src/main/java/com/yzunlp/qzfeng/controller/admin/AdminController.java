@@ -11,6 +11,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.servlet.http.HttpSession;
+import java.util.HashMap;
+import java.util.Map;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 /**
  * @author 10297
  * @since 2025/7/1 14:47
@@ -19,13 +24,42 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/admin")
 @Tag(name = "admin接口")
-public class AdminController {
-
+public class
+AdminController {
     private final AdminService adminService;
 
     @Autowired
     public AdminController(AdminService adminService) {
         this.adminService = adminService;
+    }
+
+    // 增加管理员登陆，采用session登陆方式
+    @PostMapping("/login")
+    @Operation(summary = "管理员登录")
+    public Result<Map<String, String>> login(@RequestParam String username,
+                                             @RequestParam String password,
+                                             HttpSession session) {
+        log.info("管理员尝试登录: {}", username);
+
+        if ("admin".equals(username) && "admin312".equals(password)) {
+
+
+            session.setAttribute("ADMIN_SESSION", username);
+
+            Map<String, String> map = new HashMap<>();
+            map.put("redirectUrl", "/admin/home3.html");
+
+            return Result.success(map);
+        } else {
+            return Result.error("管理员账号或密码错误");
+        }
+    }
+
+    @GetMapping("/logout")
+    @Operation(summary = "管理员退出")
+    public Result<String> logout(HttpSession session) {
+        session.invalidate(); // 清除 Session
+        return Result.success("退出成功");
     }
 
     @GetMapping("/userList")

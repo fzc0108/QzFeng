@@ -23,4 +23,6 @@ public interface UserInfoMapper {
     // 根据 手机号 和 密码 查询用户信息
     UserInfo selectByPhoneAndPassword(LoginDTO loginDTO);
 
+    int insert(UserInfo userInfo);
+
 }

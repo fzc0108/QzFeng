@@ -1,17 +1,19 @@
 package com.yzunlp.qzfeng.service;
 
 import com.yzunlp.qzfeng.domain.dto.LoginDTO;
-import com.yzunlp.qzfeng.domain.dto.RegisterDTO;
+import com.yzunlp.qzfeng.domain.dto.UserHome1stDTO;
 import com.yzunlp.qzfeng.domain.dto.UserInfoDTO;
+import com.yzunlp.qzfeng.domain.vo.LoginVO;
 import com.yzunlp.qzfeng.domain.po.*;
 
 public interface UserInfoService {
 
-    int register(RegisterDTO registerDTO);
+    LoginVO register(UserHome1stDTO dto);
 
     void updateUserInfo(UserInfoDTO userInfoDTO);
 
-    UserInfo login(LoginDTO loginDTO);
+    LoginVO login(LoginDTO loginDTO);
 
     UserInfo selectById();
+
 }

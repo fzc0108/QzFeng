@@ -216,12 +216,10 @@
         })
             .then(response => response.json())
             .then(result => {
-                if (result.code === 1) {
-                    alert("提交成功，谢谢");
-                    // window.location.href = "/static/login.html";
-                    this.reset();
-                    $('#preview').empty();
-                    $('#propolisDetails').hide();
+                if (result.code === 1 || result.code === 200) {
+
+                    window.location.href = '/static/end-thanks.html';
+
                 } else {
                     alert("提交失败：" + result.msg);
                 }

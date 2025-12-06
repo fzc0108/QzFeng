@@ -9,6 +9,7 @@ public class QzFengApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(QzFengApplication.class, args);
+
     }
 
 }

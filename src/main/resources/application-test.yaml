@@ -1,6 +1,6 @@
 yzu-nlp:
   database:
-    host: ciwater_mysql
+    host: qzfeng-mysql
     port: 3306
     username: root
     password: admin

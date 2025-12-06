@@ -30,6 +30,6 @@
         order by update_time desc
     </select>
     <select id="selectAllUsers" resultType="com.yzunlp.qzfeng.domain.vo.UserInfoBaseVO">
-        select id,phone,name from user_info
+        select id,phone,name,user_code AS userCode from user_info
     </select>
 </mapper>

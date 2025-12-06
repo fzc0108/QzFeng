@@ -2,26 +2,21 @@ package com.yzunlp.qzfeng.controller.user;
 
 import com.yzunlp.qzfeng.domain.dto.UserInfoDTO;
 import com.yzunlp.qzfeng.service.UserInfoService;
-import com.yzunlp.qzfeng.common.JwtProperties;
-import com.yzunlp.qzfeng.common.JwtUtil;
 import com.yzunlp.qzfeng.common.Result;
 import com.yzunlp.qzfeng.domain.dto.LoginDTO;
-import com.yzunlp.qzfeng.domain.dto.RegisterDTO;
-import com.yzunlp.qzfeng.domain.po.*;
+import com.yzunlp.qzfeng.domain.dto.UserHome1stDTO;
+import com.yzunlp.qzfeng.domain.po.UserInfo;
 import com.yzunlp.qzfeng.domain.vo.LoginVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.HashMap;
-import java.util.Map;
+import jakarta.validation.Valid;
 
 /**
  * @author: Huang
- * @description:
- * @date: 2025/6/28 9:31
+ * @description: 用户接口 Controller
  */
 @Slf4j
 @RestController
@@ -29,29 +24,19 @@ import java.util.Map;
 @Tag(name = "user-info接口")
 public class UserInfoController {
 
-//    private static final String UPLOAD_DIR = "D:\\develop_cocos\\JavaProjects\\QzFeng\\src\\main\\resources\\uploads\\";
-
     private final UserInfoService userInfoService;
-    private final JwtProperties jwtProperties;
 
     @Autowired
-    public UserInfoController(UserInfoService userService, JwtProperties jwtProperties) {
+    public UserInfoController(UserInfoService userService) {
         this.userInfoService = userService;
-        this.jwtProperties = jwtProperties;
     }
 
-    @Operation(summary = "用户注册（增加用户）")
+    @Operation(summary = "用户注册并自动登录")
     @PostMapping("/register")
-    public Result<Void> register(@RequestBody RegisterDTO registerDTO) {
-        log.info("用户注册: {}", registerDTO);
-        int rows = userInfoService.register(registerDTO);
-        if (rows == 0) {
-            log.info("用户已存在: {}", registerDTO);
-            return Result.error("注册失败，手机号已注册");
-        } else {
-            log.info("注册成功: {}", registerDTO);
-            return Result.success();
-        }
+    public Result<LoginVO> register(@RequestBody @Valid UserHome1stDTO userHome1stDTO) {
+        log.info("用户注册提交: {}", userHome1stDTO);
+        LoginVO loginVO = userInfoService.register(userHome1stDTO);
+        return Result.success(loginVO);
     }
 
     @Operation(summary = "修改用户信息")
@@ -72,35 +57,21 @@ public class UserInfoController {
 
     @Operation(summary = "用户登录")
     @PostMapping("/login")
-    public Result<LoginVO> login(@RequestBody LoginDTO loginDTO) {
-        log.info("用户登录: {}", loginDTO);
-        UserInfo userInfo = userInfoService.login(loginDTO);
+    public Result<LoginVO> login(@RequestBody @Valid LoginDTO loginDTO) {
+        log.info("用户登录 request: {}", loginDTO);
+        LoginVO loginVO = userInfoService.login(loginDTO);
+        // 调用 Service：
+        // 1. 检查是否存在 -> 自动注册
+        // 2. 校验 userCode
+        // 3. 生成 Token
+        if (loginVO == null) {
+            log.info("用户未注册，返回 202 状态码引导跳转");
 
-        int code_flag = 1;
-        if (userInfo == null) {
-            log.info("用户不存在, 自动注册");
-//            return Result.error("用户名或密码错误");
-            RegisterDTO registerDTO = new RegisterDTO();
-            registerDTO.setPhone(loginDTO.getPhone());
-            registerDTO.setName("Anonymous");
-            code_flag = code_flag + userInfoService.register(registerDTO);
-            userInfo = userInfoService.login(loginDTO);
+        // 直接返回结果，包含 token, userCode, isNewUser
+            Result<LoginVO> result = Result.error("用户未注册，请前往填写信息");
+            result.setCode(202); // 强制设置状态码为 202
+            return result;
         }
-        //登录成功后，生成jwt令牌
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("userID", userInfo.getId());
-        String token = JwtUtil.createJWT(
-                jwtProperties.getUserSecretKey(),
-                jwtProperties.getUserTtl(),
-                claims
-        );
-
-        LoginVO loginVO = LoginVO.builder()
-                .phone(userInfo.getPhone())
-                .token(token)
-                .build();
-        log.info("用户登录成功, code={}", code_flag);
-        return Result.success(code_flag, loginVO);
+        return Result.success(loginVO);
     }
-
 }

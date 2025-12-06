@@ -80,7 +80,7 @@ public class UserCheckupFormController {
             UserCheckupForm userCheckupForm = new UserCheckupForm();
             userCheckupForm.setUserId(BaseContext.getCurrentId());
             userCheckupForm.setPicUrl(fileName);
-//            checkupFormService.add(userCheckupForm);
+            checkupFormService.add(userCheckupForm);
             return Result.success(userCheckupForm);
 
         } catch (IOException e) {

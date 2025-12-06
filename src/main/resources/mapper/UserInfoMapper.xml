@@ -10,6 +10,13 @@
             value (#{phone}, #{name}, #{password}, #{chinaId}, #{birthday}, #{sex}, #{areaCode})
     </insert>
 
+    <insert id="insert" parameterType="com.yzunlp.qzfeng.domain.po.UserInfo" useGeneratedKeys="true" keyProperty="id">
+        insert into Questionnaire.user_info
+            (phone, name, password, user_code, china_id, birthday, sex, area_code)
+        values
+            (#{phone}, #{name}, #{password}, #{userCode}, #{chinaId}, #{birthday}, #{sex}, #{areaCode})
+    </insert>
+
     <update id="updateUserInfo">
         update Questionnaire.user_info
         <set>

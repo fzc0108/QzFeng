@@ -44,7 +44,7 @@ public class UserServiceImpl implements UserService {
             userHome1stDTO.setHypertensionYear(0);
         }
         if (userHome1stDTO.getPropolisYear() == null) {
-            userHome1stDTO.setPropolisYear(0);
+            userHome1stDTO.setPropolisYear((short) 0);
         }
         if (userHome1stDTO.getHyperlipidemiaYear() == null) {
             userHome1stDTO.setHyperlipidemiaYear(0);

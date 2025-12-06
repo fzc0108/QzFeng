@@ -14,8 +14,10 @@
             padding: 0;
             background-color: #f5f7fa;
             font-family: Arial, sans-serif;
+            overflow: hidden; /* 防止开屏时页面滚动 */
         }
 
+        /* --- 1. 登录框样式 --- */
         .login-container {
             max-width: 400px;
             margin: 60px auto;
@@ -32,101 +34,297 @@
             color: #333;
         }
 
-        .form-group {
-            margin-bottom: 20px;
-        }
-
         .el-button--primary {
             width: 100%;
         }
 
-        .register-link {
-            display: block;
-            text-align: center;
-            margin-top: 15px;
-            color: #409EFF;
-            text-decoration: none;
+        .tips {
+            font-size: 12px;
+            color: #909399;
+            line-height: 1.4;
+            margin-top: -10px;
+            margin-bottom: 20px;
         }
 
-        .result {
-            text-align: center;
+        .agreement-box {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        .agreement-link {
+            color: #409EFF;
+            cursor: pointer;
+            text-decoration: none;
+            margin-left: 5px;
+            font-weight: bold;
+        }
+        .el-checkbox__label {
+            font-size: 14px;
+        }
+
+        /* --- 2. 开屏页 (Splash Screen) 样式 --- */
+        .splash-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background-color: #ffffff;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .splash-logo {
+            width: 120px;
+            height: auto;
+            object-fit: contain;
+            margin-bottom: 20px;
+        }
+
+        .splash-text {
+            font-size: 18px;
+            color: #333;
+            font-weight: bold;
+            letter-spacing: 2px;
+            margin-top: 10px;
+        }
+
+        .splash-sub-text {
+            margin-top: 5px;
+            font-size: 12px;
+            color: #999;
+        }
+
+        /* --- 3. Vue 过渡动画 --- */
+        .fade-enter-active, .fade-leave-active {
+            transition: opacity 0.8s;
+        }
+        .fade-enter, .fade-leave-to {
+            opacity: 0;
+        }
+
+        /* --- 4. 协议内容样式 --- */
+        .protocol-content {
+            height: 350px; /* 高度稍微调大一点方便阅读 */
+            overflow-y: auto;
+            line-height: 1.8;
+            padding-right: 10px;
+            text-align: left;
+            font-size: 13px;
+            color: #606266;
+        }
+        .protocol-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #303133;
+            margin-bottom: 10px;
             margin-top: 20px;
-            color: red;
+        }
+        .protocol-divider {
+            margin: 20px 0;
+            border: 0;
+            border-top: 1px dashed #dcdfe6;
         }
     </style>
 </head>
 <body>
 
 <div id="app">
-    <div class="login-container">
+
+    <!-- A. 开屏欢迎页 -->
+    <transition name="fade">
+        <div class="splash-screen" v-if="showSplash">
+            <img src="./img/logo.png" class="splash-logo" alt="公司Logo">
+            <div class="splash-text">蜂胶健康管理系统</div>
+            <div class="splash-sub-text">正在加载资源...</div>
+        </div>
+    </transition>
+
+    <!-- B. 登录界面 -->
+    <div class="login-container" v-show="!showSplash">
         <h2 class="login-title">用户登录</h2>
-        <el-form :model="loginForm" ref="loginForm" label-position="left" label-width="80px">
+        <el-form :model="loginForm" ref="loginForm" label-position="top">
+
             <el-form-item label="手机号">
-                <el-input v-model="loginForm.phone" placeholder="请输入手机号" required></el-input>
+                <el-input v-model="loginForm.phone" placeholder="请输入手机号"></el-input>
             </el-form-item>
-<!--            <el-form-item label="密码">-->
-<!--                <el-input v-model="loginForm.password" type="password" placeholder="请输入密码" show-password-->
-<!--                          required></el-input>-->
-<!--            </el-form-item>-->
-            <el-button type="primary" @click="submitForm">登 录</el-button>
-<!--            <a href="/user/register.html" class="register-link">没有账号？去注册</a>-->
+
+            <el-form-item label="用户编号">
+                <el-input
+                        ref="userCodeInput"
+                        v-model="loginForm.userCode"
+                        placeholder="首次登录请留空，系统自动生成">
+                </el-input>
+            </el-form-item>
+
+            <div class="tips">
+                * 首次使用：输入手机号直接登录。<br>
+                * 再次登录：输入手机号 + 填写的编号。
+            </div>
+
+            <!-- 协议勾选 (合并版) -->
+            <div class="agreement-box">
+                <el-checkbox v-model="isAgreed">我已阅读并同意</el-checkbox>
+                <span class="agreement-link" @click="showProtocol">
+                    《用户协议与隐私政策》
+                </span>
+            </div>
+
+            <el-button type="primary" @click="submitForm" :loading="loading">登 录</el-button>
         </el-form>
-<!--        <div class="result">{{resultMsg}}</div>-->
     </div>
+
+    <!-- C. 协议弹窗 (合并版) -->
+    <el-dialog title="用户协议与隐私政策" :visible.sync="dialogVisible" width="90%" center append-to-body :close-on-click-modal="false">
+
+        <div class="scroll-content">
+            <!-- 第一部分：用户知情同意书与服务协议 -->
+            <div class="protocol-title">第一部分：用户知情同意与服务协议</div>
+            <p>欢迎您参与本“蜂胶产品功效真实世界研究（RWS）”数据采集项目。在使用本系统填写调查问卷前，请您务必仔细阅读以下条款：</p>
+
+            <p>1. <strong>数据真实性承诺</strong>：
+                <br>本系统旨在收集蜂胶产品在真实使用环境下的效果数据。<strong>数据的真实性是研究的核心</strong>。您承诺在填报服用剂量、身体反馈、体检指标等信息时，均保持真实、客观，不虚构数据。
+            </p>
+
+            <p>2. <strong>非医疗诊断声明（重要）</strong>：
+                <br>2.1 本系统仅作为数据记录与统计工具，<strong>不具备医疗诊断功能</strong>。
+                <br>2.2 蜂胶为膳食营养补充剂，不能代替药物治疗疾病。若您在服用期间身体出现明显不适或病情变化，请立即停止服用并前往医院就诊。
+            </p>
+
+            <p>3. <strong>账号使用规范</strong>：
+                <br>您的账号与您的研究档案唯一绑定。请勿将账号转借他人填写，以免混淆数据，影响研究结果的准确性。
+            </p>
+
+            <!-- 分割线 -->
+            <hr class="protocol-divider">
+
+            <!-- 第二部分：隐私与数据保护政策 -->
+            <div class="protocol-title">第二部分：隐私与数据保护政策</div>
+            <p>我们严格遵守《个人信息保护法》及医学伦理规范，采取严密措施保护您的隐私：</p>
+
+            <p>1. <strong>我们收集哪些信息</strong>：
+                <br>为了评估产品功效，我们需要收集您的：
+                <br>- <strong>基础信息</strong>：姓名/昵称、联系方式（用于回访）、年龄、性别；
+                <br>- <strong>健康数据</strong>：既往病史、服用蜂胶前后的体检指标（如血糖、血脂数据）、主观感受等。
+            </p>
+
+            <p>2. <strong>数据如何被使用</strong>：
+                <br>所有数据将被汇总至数据库，用于进行<strong>群体性的统计分析</strong>（例如：“80%的用户反馈睡眠改善”）。在对外发布的分析报告中，<strong>不会出现任何能够识别您个人身份的信息</strong>。
+            </p>
+
+            <p>3. <strong>数据存储与安全</strong>：
+                <br>您的数据存储于加密的私有数据库中，仅限本项目授权的研究人员访问。未经您的授权，我们绝不会将您的个人信息透露给与本项目无关的第三方。
+            </p>
+
+            <p>4. <strong>退出研究与数据删除（注销说明）</strong>：
+                <br>4.1 <strong>自愿原则</strong>：您有权在项目的任何阶段决定退出本研究。
+                <br>4.2 <strong>如何注销</strong>：由于涉及研究数据的严谨性与归档要求，本系统暂不支持自助注销。
+                <br><strong>如您决定退出并希望删除您的个人信息，请直接联系您的专属健康顾问，或发送邮件至 [公司数据管理邮箱] 说明情况。</strong>
+                <br>4.3 <strong>处理流程</strong>：收到您的申请后，管理员将在后台核实您的身份，并在7个工作日内将您的个人敏感信息从活跃数据库中移除或进行匿名化脱敏处理。
+            </p>
+
+            <p>5. <strong>联系我们</strong>：
+                <br>如对问卷内容或数据处理有疑问，请通工作人员进行反馈。
+            </p>
+        </div>
+
+        <span slot="footer" class="dialog-footer">
+            <el-button type="primary" @click="agreeAndClose">我已阅读并同意</el-button>
+        </span>
+    </el-dialog>
+
 </div>
 
 <script src="./js/vue@2.js"></script>
-<script src="./js/index.js "></script>
+<script src="./js/index.js"></script>
 
 <script>
     new Vue({
         el: '#app',
         data() {
             return {
+                showSplash: true,
+                loading: false,
+                isAgreed: false,
+                dialogVisible: false,
+
                 loginForm: {
                     phone: '',
-                    password: '666'
-                },
-                resultMsg: ''
+                    userCode: ''
+                }
             };
         },
+        mounted() {
+            setTimeout(() => {
+                this.showSplash = false;
+                document.body.style.overflow = 'auto';
+                this.dialogVisible = true;
+            }, 2500);
+        },
         methods: {
+            // 打开合并的协议弹窗
+            showProtocol() {
+                this.dialogVisible = true;
+            },
+
+            // 同意并关闭
+            agreeAndClose() {
+                this.isAgreed = true; // 自动勾选复选框
+                this.dialogVisible = false; // 关闭弹窗
+            },
+
             submitForm() {
-                const {phone, password} = this.loginForm;
+                const { phone, userCode } = this.loginForm;
+
+                if (!phone) {
+                    this.$message.warning('请输入手机号');
+                    return;
+                }
+                if (!this.isAgreed) {
+                    this.$message({
+                        message: '请先阅读并同意《用户协议与隐私政策》',
+                        type: 'warning',
+                        duration: 3000
+                    });
+                    return;
+                }
+
+                this.loading = true;
 
                 fetch('/user/info/login', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({phone, password})
+                    body: JSON.stringify({ phone: phone, userCode: userCode })
                 })
                     .then(response => response.json())
                     .then(result => {
-                        console.log(result)
-                        if (result.code > 0) {
-                            console.log(result.data.token)
-                            localStorage.setItem('Authorization', result.data.token);
-                            if (Number(result.code) === 1) {
-                                // alert("老用户");
-                                window.location.href = '/static/home-sec.html';
+                        this.loading = false;
+                        if (result.code === 200 || result.code === 1) {
+                            if (result.data && result.data.token) {
+                                this.$message.success('登录成功！');
+                                localStorage.setItem('Authorization', result.data.token);
+                                setTimeout(() => { window.location.href = '/static/home-sec.html'; }, 500);
                             } else {
-                                // alert("新用户");
-                                window.location.href = '/static/home-first.html';
+                                this.$message.error('登录异常：未获取到令牌');
                             }
+                        } else if (result.code === 202) {
+                            this.$message.success('新用户请完善信息，正在跳转...');
+                            setTimeout(() => { window.location.href = '/static/home-first.html?phone=' + phone; }, 1000);
                         } else {
-                            alert(result.msg);
-                            this.resultMsg = result.msg;
-                            setTimeout(() => {
-                                this.resultMsg = '';
-                            }, 3000);
+                            this.$message.error(result.msg || '登录失败');
+                            if (result.msg && result.msg.includes('编码')) {
+                                this.$nextTick(() => { this.$refs.userCodeInput.focus(); });
+                            }
                         }
                     })
                     .catch(err => {
+                        this.loading = false;
                         console.error(err);
-                        alert('请求失败，请重试');
-                        this.resultMsg = '请求失败，请重试';
-                        setTimeout(() => {
-                            this.resultMsg = '';
-                        }, 3000);
+                        this.$message.error('网络请求失败');
                     });
             }
         }

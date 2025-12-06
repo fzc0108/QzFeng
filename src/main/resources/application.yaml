@@ -4,7 +4,7 @@ spring:
   application:
     name: yzunlp-qzfeng-service
   profiles:
-    active: test
+    active: dev
   servlet:
     multipart:
       max-file-size: 10MB     # 单个文件最大10MB

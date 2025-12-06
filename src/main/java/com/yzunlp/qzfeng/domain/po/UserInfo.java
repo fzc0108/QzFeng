@@ -20,11 +20,12 @@ public class UserInfo {
     private Date birthday; // 用户的生日
     private Short sex; // 用户的性别，男1，女2
     private Long areaCode; // 用户所在地区编码
+    private String userCode;// 用户的编号
 
     public UserInfo() {
     }
 
-    public UserInfo(Long id, String phone, String name, String password, String chinaId, Date birthday, Short sex, Long areaCode) {
+    public UserInfo(Long id, String phone, String name, String password, String chinaId, Date birthday, Short sex, Long areaCode, String userCode) {
         this.id = id;
         this.phone = phone;
         this.name = name;
@@ -33,5 +34,6 @@ public class UserInfo {
         this.birthday = birthday;
         this.sex = sex;
         this.areaCode = areaCode;
+        this.userCode = userCode;
     }
 }
