@@ -6,6 +6,8 @@
     <title>用户调查问卷</title>
     <!-- Bootstrap 5 -->
     <link href="./css/bootstrap.min.css" rel="stylesheet">
+    <!-- Flatpickr CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
 </head>
 <body class="bg-light">
 <div class="container mt-4 mb-5">
@@ -27,7 +29,7 @@
         <!--        </div>-->
         <div class="mb-3">
             <label for="birthday" class="form-label">出生日期</label>
-            <input type="date" class="form-control" id="birthday" name="birthday" required>
+            <input type="text" class="form-control" id="birthday" name="birthday" placeholder="请选择出生日期" required>
         </div>
         <div class="mb-3">
             <label class="form-label">性别</label>
@@ -248,6 +250,9 @@
 </div>
 <script src="./js/bootstrap.bundle.min.js"></script>
 <script src="./js/jquery.min.js"></script>
+<!-- Flatpickr JS -->
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/zh.js"></script>
 <script>
     // 1. 获取 URL 中的手机号
     const urlParams = new URLSearchParams(window.location.search);
@@ -268,37 +273,21 @@
             }
         });
 
-        //出生日期限制
-        const $birthday = $('#birthday');
+        // Initialize Flatpickr for birthday
         const now = new Date();
-
-        const toDateStr = (d) => {
-            return d.getFullYear() + '-' +
-                String(d.getMonth() + 1).padStart(2, '0') + '-' +
-                String(d.getDate()).padStart(2, '0');
-        };
-
         const maxValidDateObj = new Date();
         maxValidDateObj.setFullYear(now.getFullYear() - 5);
-        const maxDate = toDateStr(maxValidDateObj);
 
         const minDateObj = new Date();
         minDateObj.setFullYear(now.getFullYear() - 120);
-        const minDate = toDateStr(minDateObj);
 
-
-
-        $birthday.on('change', function() {
-            const val = $(this).val();
-            if (!val) return;
-
-            if (val > maxDate) {
-                alert("年龄太小了（需满5岁），请确认出生日期！");
-                $(this).val('');
-            } else if (val < minDate) {
-                alert("年龄太大了（超过120岁），请确认出生日期！");
-                $(this).val('');
-            }
+        flatpickr("#birthday", {
+            locale: "zh",
+            dateFormat: "Y-m-d",
+            maxDate: maxValidDateObj,
+            minDate: minDateObj,
+            disableMobile: true, // Force custom picker on mobile
+            allowInput: false // Disable manual input
         });
     });
 
