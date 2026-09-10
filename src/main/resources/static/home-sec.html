@@ -107,7 +107,7 @@
         <h5 class="mt-4 mb-3">体检单</h5>
         <div class="mb-3">
             <label class="form-label">上传体检报告</label>
-            <input class="form-control" type="file" id="picFile" name="picFile" accept="image/*">
+            <input class="form-control" type="file" id="picFile" name="picFile" accept="image/*" multiple>
             <input type="hidden" id="picUrl" name="picUrl">
             <div id="preview" class="mt-3"></div>
         </div>
@@ -141,36 +141,43 @@
         });
     });
 
-    document.getElementById('picFile').addEventListener('change', function () {
-        const file = this.files[0];
-        if (!file) return;
+    document.getElementById('picFile').addEventListener('change', async function () {
+        const files = Array.from(this.files);
+        if (files.length === 0) return;
 
-        const formData = new FormData();
-        formData.append('file', file);
+        const failedFiles = [];
+        for (const file of files) {
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
 
-        fetch('/user/checkup/uploads', {
-            method: 'POST',
-            headers: {
-                'Authorization': token
-            },
-            body: formData
-        })
-            .then(response => response.json())
-            .then(result => {
+                const response = await fetch('/user/checkup/uploads', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': token
+                    },
+                    body: formData
+                });
+                const result = await response.json();
+
                 console.log(result);
                 if (result.code === 1) {
-                    // 保存返回的picUrl到隐藏字段
-                    document.getElementById('picUrl').value = result.data.picUrl;
-                    // alert("图片上传成功");
-                    console.log(result.data.picUrl)
+                    console.log("图片上传成功:", file.name, result.data.picUrl);
                 } else {
-                    alert("图片上传失败: " + result.msg);
+                    failedFiles.push(file.name);
+                    console.warn("图片上传失败:", file.name, result.msg);
                 }
-            })
-            .catch(err => {
-                console.error(err);
-                alert("上传图片出错，请重试");
-            });
+            } catch (err) {
+                failedFiles.push(file.name);
+                console.error("上传图片出错:", file.name, err);
+            }
+        }
+
+        if (failedFiles.length > 0) {
+            alert("以下体检单图片上传失败：" + failedFiles.join("、"));
+        } else {
+            alert("所有体检单图片上传成功");
+        }
     });
 
     document.getElementById('surveyForm').addEventListener('submit', function (e) {
