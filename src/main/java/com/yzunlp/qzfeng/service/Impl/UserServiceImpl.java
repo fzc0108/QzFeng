@@ -100,7 +100,6 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public void saveQuestionnaires(UserHomeDTO userHomeDTO) {
-        Long currentId = BaseContext.getCurrentId(); //用户ID
         //更新user_eval
         UserEval userEval = new UserEval();
         userEval.setEvaluation(userHomeDTO.getEvaluation());
@@ -110,15 +109,5 @@ public class UserServiceImpl implements UserService {
         UserPropolis userPropolis = new UserPropolis();
         BeanUtils.copyProperties(userHomeDTO, userPropolis);
         userPropolisService.add(userPropolis);
-
-        if (userHomeDTO.getPicUrl() != "" && userHomeDTO.getPicUrl() != null) {
-            //更新user_checkup_form
-            UserCheckupForm userCheckupForm = new UserCheckupForm();
-            userCheckupForm.setUserId(currentId);
-            userCheckupForm.setPicUrl(userHomeDTO.getPicUrl());
-            userCheckupForm.setUpdateTime(LocalDateTime.now());
-            userCheckupFormService.add(userCheckupForm);
-        }
-
     }
 }
