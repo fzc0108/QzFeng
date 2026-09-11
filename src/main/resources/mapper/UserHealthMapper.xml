@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.yzunlp.qzfeng.mapper.UserHealthMapper">
+
+    <insert id="addUserHealth"
+            parameterType="com.yzunlp.qzfeng.domain.po.UserHealth"
+            useGeneratedKeys="true"
+            keyProperty="id">
+        insert into Questionnaire.user_health
+        (hypertension, hypertension_year, hypertension_drug, diabetes, diabetes_year, diabetes_drug, hyperlipidemia,
+         hyperlipidemia_year, hyperlipidemia_drug, tumor)
+            value (#{hypertension}, #{hypertensionYear}, #{hyperlipidemiaDrug}, #{diabetes}, #{diabetesYear},
+                   #{diabetesDrug}, #{hyperlipidemia}, #{hypertensionYear}, #{hyperlipidemiaDrug}, #{tumor})
+    </insert>
+
+    <update id="updateUserHealth" parameterType="com.yzunlp.qzfeng.domain.po.UserHealth">
+        update Questionnaire.user_health
+        <set>
+            <if test="hypertension != null">
+                hypertension = #{hypertension},
+            </if>
+            <if test="hypertensionYear != null">
+                hypertension_year = #{hypertensionYear},
+            </if>
+            <if test="hyperlipidemiaDrug != null">
+                hyperlipidemia_drug = #{hyperlipidemiaDrug},
+            </if>
+            <if test="diabetes != null">
+                diabetes = #{diabetes},
+            </if>
+            <if test="diabetesYear != null">
+                diabetes_year = #{diabetesYear},
+            </if>
+            <if test="diabetesDrug != null">
+                diabetes_drug = #{diabetesDrug},
+            </if>
+            <if test="hyperlipidemia != null">
+                hyperlipidemia = #{hyperlipidemia},
+            </if>
+            <if test="hyperlipidemiaYear != null">
+                hyperlipidemia_year = #{hyperlipidemiaYear},
+            </if>
+            <if test="hyperlipidemiaDrug != null">
+                hyperlipidemia_drug = #{hyperlipidemiaDrug},
+            </if>
+            <if test="tumor != null">
+                tumor = #{tumor}
+            </if>
+        </set>
+        where id = #{id}
+    </update>
+
+    <select id="selectUserHealthByUserId" resultType="com.yzunlp.qzfeng.domain.po.UserHealth">
+        SELECT uh.*
+        FROM Questionnaire.info2health i2h
+                 LEFT JOIN Questionnaire.user_health uh ON i2h.health_id = uh.id
+        WHERE i2h.info_id = #{userId}
+    </select>
+
+    <insert id="addInfo2Health" parameterType="com.yzunlp.qzfeng.domain.po.Info2Health">
+        insert into Questionnaire.info2health
+            (info_id, health_id)
+            value (#{infoId}, #{healthId})
+    </insert>
+
+    <select id="selectInfo2Health" resultType="com.yzunlp.qzfeng.domain.po.Info2Health">
+        SELECT *
+        FROM Questionnaire.info2health
+        WHERE info_id = #{userId}
+    </select>
+    <select id="searchYesOrNo" resultType="com.yzunlp.qzfeng.domain.vo.YesNoVO">
+        SELECT
+        <choose>
+            <when test="disease == 'diabetes'">
+                COUNT(CASE WHEN diabetes = 1 THEN 1 END) AS yes,
+                COUNT(CASE WHEN diabetes = 0 THEN 1 END) AS no
+            </when>
+            <when test="disease == 'hypertension'">
+                COUNT(CASE WHEN hypertension = 1 THEN 1 END) AS yes,
+                COUNT(CASE WHEN hypertension = 0 THEN 1 END) AS no
+            </when>
+            <when test="disease == 'hyperlipidemia'">
+                COUNT(CASE WHEN hyperlipidemia = 1 THEN 1 END) AS yes,
+                COUNT(CASE WHEN hyperlipidemia = 0 THEN 1 END) AS no
+            </when>
+            <when test="disease == 'tumor'">
+                COUNT(CASE WHEN tumor = 1 THEN 1 END) AS yes,
+                COUNT(CASE WHEN tumor = 0 THEN 1 END) AS no
+            </when>
+            <otherwise>
+                SELECT 0 AS yes, 0 AS no
+            </otherwise>
+        </choose>
+        FROM Questionnaire.user_health
+    </select>
+    <select id="hypertensionYear" resultType="com.yzunlp.qzfeng.domain.dto.YearCountDTO">
+        SELECT
+            CASE
+                WHEN #{disease} = 'hypertension' THEN t1.hypertension_year
+                WHEN #{disease} = 'diabetes' THEN t1.diabetes_year
+                WHEN #{disease} = 'hyperlipidemia' THEN t1.hyperlipidemia_year
+            END AS year,
+            -- 统计人数
+            COUNT(t1.id) AS people
+        FROM
+            user_health t1
+        WHERE
+            CASE
+                WHEN #{disease} = 'hypertension' THEN t1.hypertension
+                WHEN #{disease} = 'diabetes' THEN t1.diabetes
+                WHEN #{disease} = 'hyperlipidemia' THEN t1.hyperlipidemia
+                ELSE 0
+                END = 1
+          -- 并且，只统计那些年份不为NULL或0的有效记录
+          AND CASE
+                  WHEN #{disease} = 'hypertension' THEN t1.hypertension_year
+                  WHEN #{disease} = 'diabetes' THEN t1.diabetes_year
+                  WHEN #{disease} = 'hyperlipidemia' THEN t1.hyperlipidemia_year
+            END IS NOT NULL
+          AND CASE
+                  WHEN #{disease} = 'hypertension' THEN t1.hypertension_year
+                  WHEN #{disease} = 'diabetes' THEN t1.diabetes_year
+                  WHEN #{disease} = 'hyperlipidemia' THEN t1.hyperlipidemia_year
+                  END > 0
+        -- 3. 按动态选择出的年份进行分组
+        GROUP BY
+            year
+        -- 4. 按年份排序
+        ORDER BY
+            year ASC
+    </select>
+    <select id="searchDrugYesOrNo" resultType="com.yzunlp.qzfeng.domain.vo.YesNoVO">
+        SELECT
+        <choose>
+            <when test="disease == 'diabetes'">
+                <!-- 只在 diabetes = 1 的人群中，统计 diabetes_drug 的情况 -->
+                COUNT(CASE WHEN diabetes = 1 AND diabetes_drug = 1 THEN 1 END) AS yes,
+                COUNT(CASE WHEN diabetes = 1 AND diabetes_drug = 0 THEN 1 END) AS no
+            </when>
+            <when test="disease == 'hypertension'">
+                <!-- 只在 hypertension = 1 的人群中，统计 hypertension_drug 的情况 -->
+                COUNT(CASE WHEN hypertension = 1 AND hypertension_drug = 1 THEN 1 END) AS yes,
+                COUNT(CASE WHEN hypertension = 1 AND hypertension_drug = 0 THEN 1 END) AS no
+            </when>
+            <when test="disease == 'hyperlipidemia'">
+                <!-- 只在 hyperlipidemia = 1 的人群中，统计 hyperlipidemia_drug 的情况 -->
+                COUNT(CASE WHEN hyperlipidemia = 1 AND hyperlipidemia_drug = 1 THEN 1 END) AS yes,
+                COUNT(CASE WHEN hyperlipidemia = 1 AND hyperlipidemia_drug = 0 THEN 1 END) AS no
+            </when>
+            <otherwise>
+                0 AS yes, 0 AS no
+            </otherwise>
+        </choose>
+        FROM Questionnaire.user_health
+    </select>
+</mapper>

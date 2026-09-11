@@ -31,3 +31,5 @@ build/
 
 ### VS Code ###
 .vscode/
+# 忽略用户上传的文件目录
+!**/src/main/resources/uploads/

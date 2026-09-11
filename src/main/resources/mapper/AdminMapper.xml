@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yzunlp.qzfeng.mapper.AdminMapper">
+
+    <select id="selectUserInfoHealthById" resultType="com.yzunlp.qzfeng.domain.vo.UserInfoHealthVO"
+            parameterType="java.lang.Long">
+        SELECT user_info.*,
+               user_health.*
+        FROM user_info
+                 LEFT JOIN info2health ON user_info.id = info2health.info_id
+                 LEFT JOIN user_health ON user_health.id = info2health.health_id
+        WHERE user_info.id = #{id};
+
+    </select>
+
+    <select id="selectUserPropolisByUserId" resultType="com.yzunlp.qzfeng.domain.po.UserPropolis"
+            parameterType="java.lang.Long">
+        SELECT * FROM user_propolis WHERE user_id = #{userId}
+        order by update_time desc
+    </select>
+    <select id="selectUserEvalByUserId" resultType="com.yzunlp.qzfeng.domain.po.UserEval"
+            parameterType="java.lang.Long">
+        SELECT * FROM user_eval WHERE user_id = #{userId}
+        order by update_time desc
+    </select>
+    <select id="selectUserCheckupFormByUserId" resultType="com.yzunlp.qzfeng.domain.po.UserCheckupForm"
+            parameterType="java.lang.Long">
+        SELECT * FROM user_checkup_form WHERE user_id = #{userId}
+        order by update_time desc
+    </select>
+    <select id="selectAllUsers" resultType="com.yzunlp.qzfeng.domain.vo.UserInfoBaseVO">
+        select id,phone,name,user_code AS userCode from user_info
+    </select>
+</mapper>

@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>用户调查问卷</title>
+    <!-- Bootstrap 5 -->
+    <link href="./css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+
+<div class="container mt-4 mb-5">
+    <h2 class="text-center mb-4">用户调查问卷</h2>
+    <form id="surveyForm" enctype="multipart/form-data">
+
+        <!-- 蜂胶使用情况 -->
+        <h5 class="mt-4 mb-3">蜂胶使用情况</h5>
+        <div class="mb-3">
+            <label class="form-label">1. 您是否服用过蜂胶</label>
+            <select class="form-select conditional-select" id="propolis" name="propolis" data-target="propolisDetails" required>
+                <option value="">请选择</option>
+                <option value="false">否 (0)</option>
+                <option value="true">是 (1)</option>
+            </select>
+        </div>
+        <div id="propolisDetails" class="conditional-details d-none">
+            <div class="mb-3">
+                <label class="form-label">2. 您开始服用蜂胶的年份</label>
+                <select class="form-select" id="propolisYear" name="propolisYear">
+                    <option value="">请选择年份</option>
+                    <!-- 用JS动态生成年份 -->
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">3. 您通常服用蜂胶的频率</label>
+                <select class="form-select" id="propolisFrequency" name="propolisFrequency">
+                    <option value="">请选择</option>
+                    <option value="A">A. 频繁服用，每周 >4 次</option>
+                    <option value="B">B. 经常服用，每周 1-3 次</option>
+                    <option value="C">C. 偶尔服用，每周 1 次</option>
+                    <option value="D">D. 以前未服用</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- 四、主观评估 -->
+        <h5 class="mt-4 mb-3">主观评估</h5>
+        <p class="text-muted">每项请选择评分：0=无效, 1=有效, 2=不详</p>
+        <div class="mb-3">
+            <label class="form-label">1. 感冒较以往次数减少</label>
+            <select class="form-select evaluation-item" required>
+                <option value="">请选择</option>
+                <option value="0">0 - 无效</option>
+                <option value="1">1 - 有效</option>
+                <option value="2">2 - 不详</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">2. 睡眠质量改善</label>
+            <select class="form-select evaluation-item" required>
+                <option value="">请选择</option>
+                <option value="0">0 - 无效</option>
+                <option value="1">1 - 有效</option>
+                <option value="2">2 - 不详</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">3. 胃肠道功能改善</label>
+            <select class="form-select evaluation-item" required>
+                <option value="">请选择</option>
+                <option value="0">0 - 无效</option>
+                <option value="1">1 - 有效</option>
+                <option value="2">2 - 不详</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">4. 身体疲乏感减轻</label>
+            <select class="form-select evaluation-item" required>
+                <option value="">请选择</option>
+                <option value="0">0 - 无效</option>
+                <option value="1">1 - 有效</option>
+                <option value="2">2 - 不详</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">5. 口腔溃疡次数减少</label>
+            <select class="form-select evaluation-item" required>
+                <option value="">请选择</option>
+                <option value="0">0 - 无效</option>
+                <option value="1">1 - 有效</option>
+                <option value="2">2 - 不详</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">6. 改善咽喉部不适感</label>
+            <select class="form-select evaluation-item" required>
+                <option value="">请选择</option>
+                <option value="0">0 - 无效</option>
+                <option value="1">1 - 有效</option>
+                <option value="2">2 - 不详</option>
+            </select>
+        </div>
+        <!-- 隐藏字段 -->
+        <input type="hidden" id="evaluation" name="evaluation">
+
+        <!--五、体检单-->
+        <h5 class="mt-4 mb-3">体检单</h5>
+        <div class="mb-3">
+            <label for="picFile" class="form-label">选择体检报告（可继续选择图片）</label>
+            <input class="form-control" type="file" id="picFile" accept="image/*" multiple>
+            <input type="hidden" id="picUrl" name="picUrl">
+            <div id="imageSelectionStatus" class="form-text" role="status"></div>
+            <div id="preview" class="mt-3 d-flex flex-wrap gap-2"></div>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100">提交</button>
+    </form>
+</div>
+
+<div id="imagePreviewModal"
+     class="position-fixed top-0 start-0 w-100 h-100 d-none align-items-center justify-content-center p-3"
+     style="z-index:1080;background:rgba(0,0,0,.75);"
+     role="dialog" aria-modal="true" aria-label="体检单图片大图预览">
+    <button type="button" id="closeImagePreview"
+            class="btn btn-light rounded-circle position-absolute top-0 end-0 m-3 p-0"
+            style="width:36px;height:36px;font-size:24px;line-height:30px;"
+            aria-label="关闭大图预览">×</button>
+    <img id="largePreviewImage" class="img-fluid rounded shadow bg-white"
+         style="max-width:95%;max-height:90vh;object-fit:contain;" alt="">
+</div>
+
+<script src="./js/bootstrap.bundle.min.js"></script>
+<script>
+    const token = localStorage.getItem('Authorization');
+
+    // 动态生成年份（1980~今年）
+    const yearSelect = document.getElementById('propolisYear');
+    const currentYear = new Date().getFullYear();
+    for (let y = currentYear; y >= 1980; y--) {
+        yearSelect.innerHTML += `<option value="${y}">${y}</option>`;
+    }
+
+    // 动态显示/隐藏病程和服药
+    document.querySelectorAll('.conditional-select').forEach(select => {
+        select.addEventListener('change', function () {
+            const details = document.getElementById(this.dataset.target);
+            if (this.value === "true") {
+                details.classList.remove('d-none');
+            } else {
+                details.classList.add('d-none');
+                // 清空隐藏区域的值
+                details.querySelectorAll('input, select').forEach(input => input.value = '');
+            }
+        });
+    });
+
+    // 已选图片由前端维护，选择和删除都不会发起上传请求。
+    const selectedImages = [];
+    const fileInput = document.getElementById('picFile');
+    const preview = document.getElementById('preview');
+    const imagePreviewModal = document.getElementById('imagePreviewModal');
+    const largePreviewImage = document.getElementById('largePreviewImage');
+    let isSubmitting = false;
+
+    function openImagePreview(item) {
+        largePreviewImage.src = item.url;
+        largePreviewImage.alt = '体检单图片大图预览：' + item.file.name;
+        imagePreviewModal.classList.remove('d-none');
+        imagePreviewModal.classList.add('d-flex');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeImagePreview() {
+        imagePreviewModal.classList.remove('d-flex');
+        imagePreviewModal.classList.add('d-none');
+        largePreviewImage.removeAttribute('src');
+        largePreviewImage.alt = '';
+        document.body.style.overflow = '';
+    }
+
+    document.getElementById('closeImagePreview').addEventListener('click', closeImagePreview);
+    imagePreviewModal.addEventListener('click', function (event) {
+        if (event.target === imagePreviewModal) {
+            closeImagePreview();
+        }
+    });
+
+    function renderImagePreview() {
+        preview.replaceChildren();
+        document.getElementById('imageSelectionStatus').textContent = selectedImages.length
+            ? `已选择 ${selectedImages.length} 张图片，提交后才会上传。`
+            : '尚未选择图片，可继续选择多张图片，提交后才会上传。';
+        selectedImages.forEach((item, index) => {
+            const card = document.createElement('div');
+            card.className = 'card position-relative p-2';
+            card.style.width = '140px';
+
+            const image = document.createElement('img');
+            image.src = item.url;
+            image.alt = item.file.name;
+            image.className = 'rounded';
+            image.style.cssText = 'width:100%;height:100px;object-fit:contain;cursor:pointer;';
+            image.title = '点击放大预览';
+            image.addEventListener('click', () => openImagePreview(item));
+
+            const name = document.createElement('div');
+            name.className = 'small mt-2';
+            name.style.overflowWrap = 'anywhere';
+            name.textContent = item.file.name;
+
+            const remove = document.createElement('button');
+            remove.type = 'button';
+            remove.className = 'btn btn-light border rounded-circle position-absolute top-0 end-0 p-0';
+            remove.style.cssText = 'width:24px;height:24px;line-height:20px;';
+            remove.textContent = '×';
+            remove.setAttribute('aria-label', '删除图片：' + item.file.name);
+            remove.disabled = isSubmitting;
+            remove.addEventListener('click', (event) => {
+                event.stopPropagation();
+                if (isSubmitting) return;
+                URL.revokeObjectURL(item.url);
+                selectedImages.splice(index, 1);
+                renderImagePreview();
+            });
+            card.append(image, name, remove);
+            preview.append(card);
+        });
+    }
+
+    fileInput.addEventListener('change', function () {
+        const duplicateFiles = [];
+        if (!isSubmitting) {
+            for (const file of Array.from(this.files)) {
+                const alreadySelected = selectedImages.some(item =>
+                    item.file.name === file.name
+                    && item.file.size === file.size
+                    && item.file.lastModified === file.lastModified
+                );
+                if (alreadySelected) {
+                    duplicateFiles.push(file.name);
+                    continue;
+                }
+                selectedImages.push({ file, url: URL.createObjectURL(file) });
+            }
+        }
+        this.value = '';
+        renderImagePreview();
+        if (duplicateFiles.length > 0) {
+            alert(duplicateFiles.map(name => `${name} 已经选择过，请勿重复添加`).join('\n'));
+        }
+    });
+
+    function setSubmitting(value) {
+        isSubmitting = value;
+        fileInput.disabled = value;
+        const submitButton = document.querySelector('#surveyForm button[type="submit"]');
+        submitButton.disabled = value;
+        submitButton.textContent = value ? '正在提交，请稍候…' : '提交';
+        renderImagePreview();
+    }
+
+    renderImagePreview();
+
+    function getSubmissionResultMessage(successCount, failedFiles) {
+        if (selectedImages.length === 0) {
+            return '提交成功';
+        }
+        if (failedFiles.length === 0) {
+            return `提交成功，已上传 ${successCount} 张体检单图片`;
+        }
+        const failureTitle = successCount === 0
+            ? '问卷已提交，但体检单图片上传失败：'
+            : '问卷已提交，但以下体检单图片上传失败：';
+        return `${failureTitle}\n${failedFiles.join('\n')}`;
+    }
+
+    async function uploadSelectedImages() {
+        let successCount = 0;
+        const failedFiles = [];
+        for (const { file } of selectedImages) {
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const response = await fetch('/user/checkup/uploads', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': token
+                    },
+                    body: formData
+                });
+                const result = await response.json();
+
+                console.log(result);
+                if (response.ok && result.code === 1) {
+                    console.log("图片上传成功:", file.name, result.data.picUrl);
+                    successCount++;
+                } else {
+                    failedFiles.push(file.name);
+                    console.warn("图片上传失败:", file.name, result.msg);
+                }
+            } catch (err) {
+                failedFiles.push(file.name);
+                console.error("上传图片出错:", file.name, err);
+            }
+        }
+        return { successCount, failedFiles };
+    }
+
+    document.getElementById('surveyForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        if (isSubmitting) return;
+
+        // 合并六项主观评估
+        const evalItems = document.querySelectorAll('.evaluation-item');
+        const evalValues = [];
+        let hasEmpty = false;
+
+        // // 若未上传图片，确保picUrl为空字符串
+        // if (!$('#picUrl').val()) {
+        //     $('#picUrl').val('');
+        // }
+
+        evalItems.forEach(select => {
+            if (!select.value) hasEmpty = true;
+            evalValues.push(select.value);
+        });
+        if (hasEmpty) {
+            alert('请完成所有主观评估项');
+            return;
+        }
+        document.getElementById('evaluation').value = evalValues.join(',');
+
+        const formData = new FormData(this);
+        const data = {};
+        formData.forEach((value, key) => {
+            if (value === "true") value = true;
+            if (value === "false") value = false;
+            data[key] = value;
+        });
+
+        console.log(data);
+
+        setSubmitting(true);
+        try {
+            const response = await fetch('/user/all/saveQuestionnaires', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': token
+                },
+                body: JSON.stringify(data)
+            });
+            const result = await response.json();
+            if (response.ok && (result.code === 1 || result.code === 200)) {
+                const { successCount, failedFiles } = await uploadSelectedImages();
+                alert(getSubmissionResultMessage(successCount, failedFiles));
+                window.location.href = '/static/end-thanks.html';
+            } else {
+                alert("提交失败，请稍后重试");
+            }
+        } catch (err) {
+            console.error(err);
+            alert("提交失败，请稍后重试");
+        } finally {
+            setSubmitting(false);
+        }
+    });
+</script>
+</body>
+</html>

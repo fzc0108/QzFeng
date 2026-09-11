@@ -1,7 +1,11 @@
-yzunlp:
+yzu-nlp:
   database:
-    host: 172.25.220.177
-    port: 13306
+    host: localhost
+    port: 3306
     username: root
-    password: admin
+    password: 123456
     schema: Questionnaire
+  upload:
+    user-upload-path: E:\\questionnaire_uploads_test\\
+    # D:\\develop_cocos\\
+    # E:\\questionnaire_uploads_test\\

@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.yzunlp.qzfeng.mapper.UserInfoMapper">
+
+    <insert id="addUser"
+            parameterType="com.yzunlp.qzfeng.domain.dto.RegisterDTO">
+        insert into Questionnaire.user_info
+            (phone, name, password, china_id, birthday, sex, area_code)
+            value (#{phone}, #{name}, #{password}, #{chinaId}, #{birthday}, #{sex}, #{areaCode})
+    </insert>
+
+    <insert id="insert" parameterType="com.yzunlp.qzfeng.domain.po.UserInfo" useGeneratedKeys="true" keyProperty="id">
+        insert into Questionnaire.user_info
+            (phone, name, password, user_code, china_id, birthday, sex, area_code)
+        values
+            (#{phone}, #{name}, #{password}, #{userCode}, #{chinaId}, #{birthday}, #{sex}, #{areaCode})
+    </insert>
+
+    <update id="updateUserInfo">
+        update Questionnaire.user_info
+        <set>
+            <if test="name != null">
+                name = #{name},
+            </if>
+            <if test="password != null">
+                password = #{password},
+            </if>
+            <if test="chinaId != null">
+                china_id = #{chinaId},
+            </if>
+            <if test="birthday != null">
+                birthday = #{birthday},
+            </if>
+            <if test="sex != null">
+                sex = #{sex},
+            </if>
+            <if test="areaCode != null">
+                area_code = #{areaCode},
+            </if>
+        </set>
+        where id = #{id}
+    </update>
+
+    <select id="selectById" resultType="com.yzunlp.qzfeng.domain.po.UserInfo">
+        SELECT *
+        FROM Questionnaire.user_info
+        WHERE id = #{id}
+    </select>
+
+    <!-- 查询手机号是否已存在 -->
+    <select id="selectByPhone" parameterType="string" resultType="com.yzunlp.qzfeng.domain.po.UserInfo">
+        SELECT *
+        FROM Questionnaire.user_info
+        WHERE phone = #{phone}
+    </select>
+
+    <select id="selectByPhoneAndPassword"
+            parameterType="com.yzunlp.qzfeng.domain.dto.LoginDTO"
+            resultType="com.yzunlp.qzfeng.domain.po.UserInfo">
+        select *
+        from Questionnaire.user_info
+        where phone = #{phone}
+          and password = #{password}
+    </select>
+</mapper>

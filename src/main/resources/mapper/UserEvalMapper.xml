@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yzunlp.qzfeng.mapper.UserEvalMapper">
+
+    <insert id="addUserEval"
+            parameterType="com.yzunlp.qzfeng.domain.po.UserEval">
+        INSERT INTO Questionnaire.user_eval
+            (evaluation, user_id, update_time)
+        VALUES
+            (#{evaluation}, #{userId}, #{updateTime})
+    </insert>
+
+    <update id="updateUserEval">
+        UPDATE Questionnaire.user_eval
+        <set>
+            <if test="evaluation != null">
+                evaluation = #{evaluation},
+            </if>
+            <if test="evaluation != null">
+                update_time = NOW()
+            </if>
+        </set>
+        WHERE user_id = #{userId}
+    </update>
+
+    <select id="selectUserEval" resultType="com.yzunlp.qzfeng.domain.po.UserEval">
+        SELECT * FROM Questionnaire.user_eval
+        WHERE user_id = #{userId}
+        ORDER BY update_time DESC
+        LIMIT 1
+    </select>
+    <select id="countScoresByEvaluationIndex" resultType="com.yzunlp.qzfeng.domain.dto.EvaluationCountDTO">
+        WITH LatestUserEvaluations AS (
+            -- 第1步: 找出每个用户的最新一条 evaluation 记录
+            SELECT
+                evaluation,
+                ROW_NUMBER() OVER(PARTITION BY user_id ORDER BY update_time DESC) as rn
+            FROM
+                user_eval -- 请替换为你的表名
+        )
+        -- 第3步: 对提取出的值进行分组统计
+        SELECT
+            -- 第2步: 从字符串中提取出第 eid+1 个数字
+            CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(evaluation, ',', #{eid} + 1), ',', -1) AS UNSIGNED) AS optionValue,
+            COUNT(*) AS count
+        FROM
+            LatestUserEvaluations
+        WHERE
+            rn = 1 -- 只取最新记录
+        GROUP BY
+            optionValue
+    </select>
+
+</mapper>

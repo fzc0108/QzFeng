@@ -1,0 +1,9 @@
+yzu-nlp:
+  database:
+    host: qzfeng-mysql
+    port: 3306
+    username: root
+    password: admin
+    schema: Questionnaire
+  upload:
+    user-upload-path: /data/uploads/

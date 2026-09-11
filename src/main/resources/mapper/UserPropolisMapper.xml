@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yzunlp.qzfeng.mapper.UserPropolisMapper">
+
+    <insert id="addUserPropolis"
+            parameterType="com.yzunlp.qzfeng.domain.po.UserPropolis">
+        INSERT INTO Questionnaire.user_propolis
+            (propolis, propolis_year, propolis_frequency, user_id, update_time)
+        VALUES
+            (#{propolis}, #{propolisYear}, #{propolisFrequency}, #{userId}, #{updateTime})
+    </insert>
+
+    <update id="updateUserPropolis">
+        UPDATE Questionnaire.user_propolis
+        <set>
+            <if test="propolis != null">
+                propolis = #{propolis},
+            </if>
+            <if test="propolisYear != null">
+                propolis_year = #{propolisYear},
+            </if>
+            <if test="propolisFrequency != null">
+                propolis_frequency = #{propolisFrequency},
+            </if>
+            <if test="propolisFrequency != null or propolisYear != null or propolis != null">
+                update_time = NOW()
+            </if>
+        </set>
+        WHERE user_id = #{userId}
+    </update>
+
+    <select id="selectUserPropolis" resultType="com.yzunlp.qzfeng.domain.po.UserPropolis">
+        SELECT * FROM Questionnaire.user_propolis
+        WHERE user_id = #{userId}
+        ORDER BY update_time DESC
+        LIMIT 1
+    </select>
+    <select id="propolisYesOrNo" resultType="com.yzunlp.qzfeng.domain.vo.YesNoVO">
+        SELECT
+            -- 3. 在最新的记录中，统计 propolis 为 1 (yes) 和 0 (no) 的数量
+            COUNT(CASE WHEN propolis = 1 THEN 1 END) AS yes,
+            COUNT(CASE WHEN propolis = 0 THEN 1 END) AS no
+        FROM
+            (
+                -- 1. 为每个用户的记录进行排名
+                SELECT
+                    propolis,
+                    ROW_NUMBER() OVER(PARTITION BY user_id ORDER BY update_time DESC) as rn
+                FROM
+                    -- ******* 请将 'user_propolis' 替换为你的实际表名 *******
+                    user_propolis
+            ) AS latest_records
+        -- 2. 只选择每个用户排名第一的记录（即最新的记录）
+        WHERE
+            latest_records.rn = 1
+    </select>
+    <select id="countPropolisByYear" resultType="com.yzunlp.qzfeng.domain.dto.YearCountDTO">
+        <!-- 使用 WITH 子句 (CTE) 让SQL更清晰 -->
+        WITH LatestUserRecords AS (
+        -- 第1步: 找出每个用户的最新一条记录
+        SELECT
+        propolis,
+        propolis_year,
+        ROW_NUMBER() OVER(PARTITION BY user_id ORDER BY update_time DESC) as rn
+        FROM
+        user_propolis
+        )
+        -- 第2步: 在这些最新记录中，筛选出服用蜂胶的人，并按年份分组统计
+        SELECT
+        propolis_year AS year,
+        COUNT(*) AS people
+        FROM
+        LatestUserRecords
+        WHERE
+        rn = 1  -- 只取最新记录
+        AND propolis = 1 -- 只统计服用蜂胶的人
+        AND propolis_year IS NOT NULL -- 忽略年份未知的数据
+        GROUP BY
+        propolis_year
+        ORDER BY
+        year ASC -- 按年份升序排序
+    </select>
+    <select id="countPropolisByFrequency" resultType="com.yzunlp.qzfeng.domain.dto.FrequencyCountDTO">
+        WITH LatestUserRecords AS (
+            SELECT
+                propolis,
+                propolis_frequency,
+                ROW_NUMBER() OVER(PARTITION BY user_id ORDER BY update_time DESC) as rn
+            FROM
+                user_propolis
+        )
+        -- 第2步: 在最新记录中，按频率分组统计
+        SELECT
+            propolis_frequency AS frequency,
+            COUNT(*) AS count
+        FROM
+            LatestUserRecords
+        WHERE
+            rn = 1                      -- 只取最新记录
+          AND propolis = 1            -- 只统计服用蜂胶的人
+          AND propolis_frequency IS NOT NULL -- 忽略频率为空的记录
+          AND propolis_frequency != ''       -- 忽略频率为空字符串的记录
+        GROUP BY
+            propolis_frequency
+    </select>
+
+</mapper>

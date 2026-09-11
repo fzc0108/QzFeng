@@ -12,8 +12,11 @@ create table user_info
     birthday  date                         null comment '用户的生日',
     sex       tinyint(1)                   null comment '用户的性别，男1，女2',
     area_code bigint                       null comment '用户所在地区编码',
+    user_code varchar(20)                  null comment '用户唯一编号(登录凭证)',
     constraint user_info_k_phone
-        unique (phone)
+        unique (phone),
+    constraint user_info_k_code
+        unique (user_code)
 )
     comment '用户基本信息';
 
@@ -31,7 +34,8 @@ create table user_health
     hyperlipidemia_year int        null comment '高血脂(如果有)病程几年',
     hyperlipidemia_drug tinyint(1) null comment '高血脂(如果有)是否规律服药',
     tumor               tinyint(1) not null comment '是否有肿瘤'
-);
+)
+    comment '用户基础疾病调查情况';
 
 create table info2health
 (
@@ -43,7 +47,9 @@ create table info2health
         foreign key (health_id) references user_health (id),
     constraint info2health___fk_info_id
         foreign key (info_id) references user_info (id)
-);
+)
+    comment '用户回访情况';
+
 
 create table user_propolis
 (
@@ -73,10 +79,11 @@ create table user_eval
 
 create table user_checkup_form
 (
-    id      bigint auto_increment comment '唯一表示号'
+    id          bigint auto_increment comment '唯一表示号'
         primary key,
-    user_id bigint       not null comment '外键--user_info-id',
-    pic_url varchar(256) not null comment '体检单(图片)地址',
+    user_id     bigint       not null comment '外键--user_info-id',
+    pic_url     varchar(256) not null comment '体检单(图片)地址',
+    update_time datetime     null comment '上传时间',
     constraint user_checkup_form_user_info_id_fk
         foreign key (user_id) references user_info (id)
 )

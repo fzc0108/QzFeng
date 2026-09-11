@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <title>蜂胶调查问卷后台</title>
+
+    <script src="../js/vue.global.js"></script>
+    <link rel="stylesheet" href="../css/element-plus.css">
+    <script src="../js/element-plus.js"></script>
+    <script src="../js/axios.min.js"></script>
+    <script src="../js/echarts@5.js"></script>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+        }
+
+        #app {
+            display: flex;
+            height: 100vh;
+        }
+
+        .main {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .chart-container {
+            width: 100%;
+            height: 400px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+<div id="app">
+    <el-container>
+        <el-aside width="200px">
+            <el-menu default-active="1" class="el-menu-vertical-demo" @select="handleMenuSelect">
+                <el-menu-item index="1" @click="currentSection = 'home'">回到主页</el-menu-item>
+                <el-menu-item index="2" @click="currentSection = 'users'">查看所有用户信息</el-menu-item>
+                <el-menu-item index="3" @click="currentSection = 'health'">用户健康信息统计分析</el-menu-item>
+                <el-menu-item index="4" @click="currentSection = 'propolis'">用户问卷信息统计分析</el-menu-item>
+            </el-menu>
+        </el-aside>
+
+        <el-main class="main">
+            <div v-if="currentView === 'home'">
+                <h1>欢迎来到蜂胶调查问卷后台</h1>
+            </div>
+
+            <div v-else-if="currentView === 'users'">
+                <h1>用户列表</h1>
+
+                <!-- 用户数据表格 -->
+                <el-table :data="users" style="width: 100%" v-loading="loading">
+                    <el-table-column label="序号" width="180">
+                        <template #default="scope">
+                            {{ (pagination.currentPage - 1) * pagination.pageSize + scope.$index + 1 }}
+                        </template>
+                    </el-table-column>
+                    <el-table-column prop="name" label="姓名" width="180"></el-table-column>
+                    <el-table-column prop="userCode" label="用户编号" width="180"></el-table-column>
+                    <el-table-column prop="phone" label="电话"></el-table-column>
+                    <el-table-column label="操作">
+                        <template #default="scope">
+                            <el-button size="small" @click="showQuestionnaire(scope.row.id)">查看问卷</el-button>
+                        </template>
+                    </el-table-column>
+                </el-table>
+
+                <!-- 分页 -->
+                <el-pagination
+                        style="margin-top: 20px;"
+                        @size-change="handleSizeChange"
+                        @current-change="handlePageChange"
+                        :current-page="pagination.currentPage"
+                        :page-sizes="[5, 10, 20]"
+                        :page-size="pagination.pageSize"
+                        layout="total, sizes, prev, pager, next, jumper"
+                        :total="pagination.total">
+                </el-pagination>
+
+                <!-- 问卷信息抽屉 -->
+                <el-drawer
+                        v-model="drawerVisible"
+                        title="问卷信息"
+                        direction="rtl"
+                        size="50%">
+                    <div v-if="currentUserQuestionnaire">
+                        <h3>蜂胶使用情况</h3>
+                        <el-table :data="currentUserQuestionnaire.userPropolisList" border style="width: 100%; margin-bottom: 20px;">
+                            <el-table-column prop="id" label="ID"></el-table-column>
+                            <el-table-column prop="propolis" label="是否服用">
+                                <template #default="scope">{{ scope.row.propolis ? '是' : '否' }}</template>
+                            </el-table-column>
+                            <el-table-column prop="propolisYear" label="服用年份"></el-table-column>
+                            <el-table-column prop="propolisFrequency" label="频率"></el-table-column>
+                            <el-table-column prop="updateTime" label="更新时间">
+                                <template #default="scope">
+                                    {{ formatDateTime(scope.row.updateTime) }}
+                                </template>
+                            </el-table-column>
+                        </el-table>
+
+                        <h3>主观评价</h3>
+                        <el-table :data="currentUserQuestionnaire.userEvalList" border style="width: 100%; margin-bottom: 20px;">
+                            <el-table-column prop="id" label="ID"></el-table-column>
+                            <el-table-column prop="evaluation" label="评分"></el-table-column>
+                            <el-table-column prop="updateTime" label="更新时间">
+                                <template #default="scope">
+                                    {{ formatDateTime(scope.row.updateTime) }}
+                                </template>
+                            </el-table-column>
+                        </el-table>
+
+                        <h3>体检单</h3>
+                        <el-table :data="currentUserQuestionnaire.userCheckupFormList" border style="width: 100%;">
+                            <el-table-column prop="id" label="ID"></el-table-column>
+                            <el-table-column label="图片">
+                                <template #default="scope">
+                                    <img :src="'http://49.232.199.229:18080/images/' + scope.row.picUrl" style="max-width: 150px; cursor: pointer;" @click="previewImage('http://49.232.199.229:18080/images/' + scope.row.picUrl)">
+                                </template>
+                            </el-table-column>
+                            <el-table-column prop="updateTime" label="更新时间">
+                                <template #default="scope">
+                                    {{ formatDateTime(scope.row.updateTime) }}
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                    </div>
+                </el-drawer>
+            </div>
+
+
+
+            <div v-else-if="currentView === 'health'">
+                <!-- 1.1 高血压占比 -->
+                <h3>1.1 用户患有高血压情况</h3>
+                <p>{{ healthStats.hypertension.rate.yes }}% 有，{{ healthStats.hypertension.rate.no }}% 没有</p>
+                <el-button-group>
+                    <el-button @click="showChart('yes-no', 'pie', 'hypertension')">查看饼状图</el-button>
+                    <el-button @click="showChart('yes-no', 'bar', 'hypertension')">查看柱状图</el-button>
+                </el-button-group>
+                <div id="hypertension-yes-no-chart" class="chart-container"
+                ></div>
+
+                <!-- 1.2 病程 -->
+                <h3>1.2 在患有高血压的人中，病程统计</h3>
+                <el-button-group>
+                    <el-button @click="showChart('year', 'pie', 'hypertension')">查看饼状图</el-button>
+                    <el-button @click="showChart('year', 'bar', 'hypertension')">查看柱状图</el-button>
+                </el-button-group>
+                <div id="hypertension-year-chart" class="chart-container"
+                ></div>
+
+                <!-- 1.3 服药情况 -->
+                <h3>1.3 在患有高血压的人中，是否长期规律服用药物</h3>
+                <el-button-group>
+                    <el-button @click="showChart('drug', 'pie', 'hypertension')">查看饼状图</el-button>
+                    <el-button @click="showChart('drug', 'bar', 'hypertension')">查看柱状图</el-button>
+                </el-button-group>
+                <div id="hypertension-drug-chart" class="chart-container"
+                ></div>
+
+
+                <!-- 1.1 糖尿病占比 -->
+                <h3>2.1 用户患有糖尿病情况</h3>
+                <p>{{ healthStats.diabetes.rate.yes }}% 有，{{ healthStats.diabetes.rate.no }}% 没有</p>
+                <el-button-group>
+                    <el-button @click="showChart('yes-no', 'pie', 'diabetes')">查看饼状图</el-button>
+                    <el-button @click="showChart('yes-no', 'bar', 'diabetes')">查看柱状图</el-button>
+                </el-button-group>
+                <div id="diabetes-yes-no-chart" class="chart-container"
+                ></div>
+
+                <!-- 1.2 病程 -->
+                <h3>2.2 在患有糖尿病的人中，病程统计</h3>
+                <el-button-group>
+                    <el-button @click="showChart('year', 'pie', 'diabetes')">查看饼状图</el-button>
+                    <el-button @click="showChart('year', 'bar', 'diabetes')">查看柱状图</el-button>
+                </el-button-group>
+                <div id="diabetes-year-chart" class="chart-container"
+                ></div>
+
+                <!-- 1.3 服药情况 -->
+                <h3>2.3 在患有糖尿病的人中，是否长期规律服用药物</h3>
+                <el-button-group>
+                    <el-button @click="showChart('drug', 'pie', 'diabetes')">查看饼状图</el-button>
+                    <el-button @click="showChart('drug', 'bar', 'diabetes')">查看柱状图</el-button>
+                </el-button-group>
+                <div id="diabetes-drug-chart" class="chart-container"
+                ></div>
+
+
+                <!-- 1.1 高血脂占比 -->
+                <h3>3.1 用户患有高血脂情况</h3>
+                <p>{{ healthStats.hyperlipidemia.rate.yes }}% 有，{{ healthStats.hyperlipidemia.rate.no }}% 没有</p>
+                <el-button-group>
+                    <el-button @click="showChart('yes-no', 'pie', 'hyperlipidemia')">查看饼状图</el-button>
+                    <el-button @click="showChart('yes-no', 'bar', 'hyperlipidemia')">查看柱状图</el-button>
+                </el-button-group>
+                <div id="hyperlipidemia-yes-no-chart" class="chart-container"
+                ></div>
+
+                <!-- 1.2 病程 -->
+                <h3>3.2 在患有高血脂的人中，病程统计</h3>
+                <el-button-group>
+                    <el-button @click="showChart('year', 'pie', 'hyperlipidemia')">查看饼状图</el-button>
+                    <el-button @click="showChart('year', 'bar', 'hyperlipidemia')">查看柱状图</el-button>
+                </el-button-group>
+                <div id="hyperlipidemia-year-chart" class="chart-container"
+                ></div>
+
+                <!-- 1.3 服药情况 -->
+                <h3>3.3 在患有高血脂的人中，是否长期规律服用药物</h3>
+                <el-button-group>
+                    <el-button @click="showChart('drug', 'pie', 'hyperlipidemia')">查看饼状图</el-button>
+                    <el-button @click="showChart('drug', 'bar', 'hyperlipidemia')">查看柱状图</el-button>
+                </el-button-group>
+                <div id="hyperlipidemia-drug-chart" class="chart-container"
+                ></div>
+
+
+                <!-- 1.3 服药情况 -->
+                <h3>4.1 用户患有肿瘤情况</h3>
+                <p>{{ healthStats.tumor.rate.yes }}% 有，{{ healthStats.tumor.rate.no }}% 没有</p>
+                <el-button-group>
+                    <el-button @click="showChart('yes-no', 'pie', 'tumor')">查看饼状图</el-button>
+                    <el-button @click="showChart('yes-no', 'bar', 'tumor')">查看柱状图</el-button>
+                </el-button-group>
+                <div id="tumor-yes-no-chart" class="chart-container"
+                ></div>
+            </div>
+
+            <div v-else-if="currentView === 'propolis'">
+                <h2>1. 蜂胶使用情况</h2>
+                <h3>1.1 用户蜂胶使用情况</h3>
+                <el-table :data="propolisYesNoTable" style="width: 100%; margin-bottom: 20px">
+                    <el-table-column prop="label" label="选项"></el-table-column>
+                    <el-table-column prop="count" label="小计"></el-table-column>
+                    <el-table-column prop="percent" label="比例"></el-table-column>
+                </el-table>
+                <el-button-group>
+                    <el-button @click="showChart('yes-no', 'pie', 'propolis')">查看饼状图</el-button>
+                    <el-button @click="showChart('yes-no', 'bar', 'propolis')">查看柱状图</el-button>
+                </el-button-group>
+                <div id="propolis-yes-no-chart" class="chart-container"
+                ></div>
+
+                <h3>1.2 用户服用蜂胶的年份统计</h3>
+                <el-button-group>
+                    <el-button @click="showChart('year', 'pie', 'propolis')">查看饼状图</el-button>
+                    <el-button @click="showChart('year', 'bar', 'propolis')">查看柱状图</el-button>
+                </el-button-group>
+                <div id="propolis-year-chart" class="chart-container"
+                ></div>
+
+                <h3>1.3 用户服用蜂胶的频率统计</h3>
+                <el-table :data="propolisFrequencyTable" style="width: 100%; margin-bottom: 20px">
+                    <el-table-column prop="label" label="选项"></el-table-column>
+                    <el-table-column prop="count" label="小计"></el-table-column>
+                    <el-table-column prop="percent" label="比例"></el-table-column>
+                </el-table>
+                <el-button-group>
+                    <el-button @click="showChart('frequency', 'pie', 'propolis')">查看饼状图</el-button>
+                    <el-button @click="showChart('frequency', 'bar', 'propolis')">查看柱状图</el-button>
+                </el-button-group>
+                <div id="propolis-frequency-chart" class="chart-container"
+                ></div>
+
+                <h2 style="margin-top: 40px">2. 用户主观评估</h2>
+                <div v-for="(label, index) in evalLabels" :key="index" style="margin-bottom: 40px">
+                    <h3>{{ index + 1 }}. {{ label }}</h3>
+                    <el-table :data="evalScoreTables[index]" style="width: 100%; margin-bottom: 20px">
+                        <el-table-column prop="label" label="选项"></el-table-column>
+                        <el-table-column prop="count" label="小计"></el-table-column>
+                        <el-table-column prop="percent" label="比例"></el-table-column>
+                    </el-table>
+                </div>
+
+            </div>
+
+            <div v-else>
+                <h1>欢迎来到蜂胶调查问卷后台</h1>
+            </div>
+        </el-main>
+    </el-container>
+</div>
+
+<script>
+    const {createApp} = Vue
+    //const {ElButton, ElMenu, ElMenuItem, ElContainer, ElAside, ElMain, ElButtonGroup} = ElementPlus
+    const {ElButton, ElMenu, ElMenuItem, ElContainer, ElAside, ElMain, ElButtonGroup, ElTable, ElTableColumn, ElPagination, ElDrawer, ElMessage} = ElementPlus
+    createApp({
+        data() {
+            return {
+                currentView: '',
+                visibleChart: '',
+                // hypertensionRate: {yes: 0, no: 0},
+                // diabetesRate: {yes: 0, no: 0},
+                // hyperlipidemiaRate: {yes: 0, no: 0},
+                // tumorRate: {yes: 0, no: 0},
+
+                healthStats: {
+                    hypertension:   { count: { yes: 0, no: 0 }, rate: { yes: 0, no: 0 } },
+                    diabetes:       { count: { yes: 0, no: 0 }, rate: { yes: 0, no: 0 } },
+                    hyperlipidemia: { count: { yes: 0, no: 0 }, rate: { yes: 0, no: 0 } },
+                    tumor:          { count: { yes: 0, no: 0 }, rate: { yes: 0, no: 0 } },
+                    propolis:       { count: { yes: 0, no: 0 }, rate: { yes: 0, no: 0 } }
+                },
+
+                yearData: {year: [], people: []},
+                drugData: {yes: 0, no: 0},
+
+                // propolisRate: {yes: 0, no: 0},
+                propolisYesNoTable: [],
+                propolisFrequencyTable: [],
+                propolisFrequencyData: {
+                    chart: {     // 用于存放图表所需的数据
+                        labels: [],
+                        values: []
+                    },
+                    total: 0     // 有效填写总人数
+                },
+
+                evalLabels: [
+                    '感冒较以往次数减少',
+                    '睡眠质量改善',
+                    '胃肠道功能改善',
+                    '身体疲乏感减轻',
+                    '口腔溃疡次数减少',
+                    '改善咽喉部不适感'
+                ],
+                evalScoreTables: [[], [], [], [], [], []],
+
+
+                users: [],
+                loading: false,
+                pagination: {
+                    currentPage: 1,
+                    pageSize: 10,
+                    total: 0
+                },
+                drawerVisible: false,
+                currentUserQuestionnaire: {
+                    userPropolisList: [],
+                    userEvalList: [],
+                    userCheckupFormList: []
+                },
+                apiCache: {
+                    // 用于存放健康相关的动态数据
+                    health: {},
+                    // 用于存放蜂胶相关的动态数据
+                    propolis: {}
+                }
+            }
+        },
+        methods: {
+            fetchUserList() {
+                this.loading = true;
+                axios.get('/admin/userList', {
+                    params: {
+                        pageNum: this.pagination.currentPage,
+                        pageSize: this.pagination.pageSize
+                    }
+                }).then(res => {
+                    // 假设后台返回的数据结构与原代码一致
+                    // 并且有一个code字段表示成功
+                    if (res.data && res.data.data) {
+                        this.users = res.data.data.records;
+                        this.pagination.total = res.data.data.total;
+                    } else {
+                        ElMessage.error('获取用户列表失败');
+                    }
+                }).catch(err => {
+                    console.error(err);
+                    ElMessage.error('请求用户列表出错');
+                }).finally(() => {
+                    this.loading = false;
+                });
+            },
+
+            handleSizeChange(newSize) {
+                this.pagination.pageSize = newSize;
+                this.pagination.currentPage = 1; // 切换每页数量时，回到第一页
+                this.fetchUserList();
+            },
+
+            handlePageChange(newPage) {
+                this.pagination.currentPage = newPage;
+                this.fetchUserList();
+            },
+
+            showQuestionnaire(userId) {
+                axios.get(`/admin/getUserQuestionnaireById/${userId}`)
+                    .then(res => {
+                        if (res.data && res.data.data) {
+                            this.currentUserQuestionnaire = res.data.data;
+                            this.drawerVisible = true;
+                        } else {
+                            ElMessage.warning('未找到该用户的问卷信息');
+                        }
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        ElMessage.error('加载问卷数据失败');
+                    });
+            },
+
+            previewImage(url) {
+                window.open(url, '_blank');
+            },
+            // --- 新增这个格式化函数 ---
+            formatDateTime(timeArray) {
+                // 如果后端返回的不是一个有效的数组，则返回空字符串或提示信息
+                if (!Array.isArray(timeArray) || timeArray.length < 6) {
+                    return 'N/A';
+                }
+                const [year, month, day, hour, minute, second] = timeArray;
+
+                // 辅助函数：给单位数补零 (e.g., 7 -> "07")
+                const pad = (num) => String(num).padStart(2, '0');
+
+                return `${year}-${pad(month)}-${pad(day)} ${pad(hour)}:${pad(minute)}:${pad(second)}`;
+            },
+            handleMenuSelect(index) {
+                if (index === '1') {
+                    this.currentView = 'home';
+
+                } else if (index === '2') {
+                    this.currentView = 'users';
+                    this.fetchUserList();
+                } else if (index === '3') {
+                    this.currentView = 'health';
+                    this.fetchHealthRate();
+
+                } else if (index === '4') {
+                    this.currentView = 'propolis';
+                    this.fetchPropolisRate();
+                    this.fetchAllEvalScores();
+
+                } else {
+                    console.log('121212121');
+                }
+            },
+            fetchHealthRate() {
+                const diseases = ['hypertension', 'diabetes', 'hyperlipidemia', 'tumor'];
+                diseases.forEach(disease => {
+                    axios.get(`/user/health/admin/${disease}/yes-no`).then(res => {
+                        if (res.data.code === 1) {
+                            const yesCount = res.data.data.yes;
+                            const noCount = res.data.data.no;
+                            const total = yesCount + noCount;
+                            // 1. 存储原始计数值
+                            this.healthStats[disease].count.yes = yesCount;
+                            this.healthStats[disease].count.no = noCount;
+                            // 2. 计算并存储百分比，用于文本展示
+                            if (total > 0) {
+                                this.healthStats[disease].rate.yes = ((yesCount / total) * 100).toFixed(1);
+                                this.healthStats[disease].rate.no = ((noCount / total) * 100).toFixed(1);
+                            } else {
+                                this.healthStats[disease].rate.yes = 0;
+                                this.healthStats[disease].rate.no = 0;
+                            }
+                        } else {
+                            console.log(`获取${disease}数据失败`);
+                        }
+                    });
+                })
+            },
+            fetchPropolisRate() {
+                axios.get('/user/propolis/admin/yes-no').then(res => {
+                    if (res.data.code === 1) {
+                        const {yes, no} = res.data.data;
+                        console.log(res.data.data)
+
+                        const total = yes + no;
+                        // 1. 存储原始计数值
+                        this.healthStats['propolis'].count.yes = yes;
+                        this.healthStats['propolis'].count.no = no;
+                        if (total > 0) {
+                            this.healthStats['propolis'].rate.yes = ((yes / total) * 100).toFixed(1);
+                            this.healthStats['propolis'].rate.no = ((no / total) * 100).toFixed(1);
+                        } else {
+                            this.healthStats['propolis'].rate.yes = 0;
+                            this.healthStats['propolis'].rate.no = 0;
+                        }
+                        this.propolisYesNoTable = [
+                            {label: '使用过', count: yes, percent: this.healthStats['propolis'].rate.yes + '%'},
+                            {label: '没有使用过', count: no, percent: this.healthStats['propolis'].rate.no + '%'},
+                            {label: '有效填写人数', count: total, percent: '-'}
+                        ];
+                    }
+                });
+                axios.get('/user/propolis/admin/frequency').then(res => {
+                    if (res.data.code === 1) {
+                        // 1. 定义一个编码到文本的映射字典
+                        const frequencyMap = {
+                            'A': '经常使用',
+                            'B': '偶尔使用',
+                            'C': '几乎不用',
+                            'D': '从不使用'
+                        };
+                        const raw = res.data.data;
+                        const originalLabels  = Object.keys(raw);
+                        const values = Object.values(raw);
+
+                        // 使用map方法，根据字典转换标签
+                        const labels = originalLabels.map(label => frequencyMap[label] || label); // 如果找不到映射，就显示原始编码
+                        // 1. 填充图表数据
+                        this.propolisFrequencyData.chart.labels = labels;
+                        this.propolisFrequencyData.chart.values = values;
+
+                        // 构建 frequency 表格
+                        const total = values.reduce((a, b) => a + b, 0);
+
+                        // 2. 填充总人数
+                        this.propolisFrequencyData.total = total;
+                        this.propolisFrequencyTable = labels.map((label, index) => ({
+                            label,
+                            count: values[index],
+                            percent: ((values[index] / total) * 100).toFixed(1) + '%'
+                        }));
+                        this.propolisFrequencyTable.push({label: '有效填写人数', count: total, percent: '---'});
+                    }
+                });
+            },
+            showChart(type, chartType, disease) {
+                let chartId = disease + '-' + type + '-chart';
+                let requestUrl = '';
+
+                // 为我们的缓存创建一个唯一的键名
+                const cacheKey = disease+'_'+type;
+                let cacheStore; // 用来决定数据存到 health 还是 propolis
+
+
+                if (disease === 'propolis') {
+                    requestUrl = '/user/propolis/admin/' + type;
+                    cacheStore = this.apiCache.propolis;
+                } else {
+                    requestUrl = '/user/health/admin/' + disease + '/' + type;
+                    cacheStore = this.apiCache.health;
+                }
+
+                this.visibleChart = disease + '-' + type;
+
+                // --- 1. 优先检查缓存 ---
+                if (cacheStore[cacheKey]) {
+                    console.log(`[缓存命中] 使用本地数据: ${cacheKey}`); // 用于调试
+                    const cachedData = cacheStore[cacheKey];
+
+                    // 立刻使用缓存数据渲染图表
+                    if (type === 'year') {
+                        this.renderChart(chartId, chartType, cachedData.year.map(y => y + '年'), cachedData.people);
+                    } else if (type === 'drug') {
+                        this.renderChart(chartId, chartType, ['是', '否'], [cachedData.yes, cachedData.no]);
+                    } else if (type === 'frequency') {
+                        this.renderChart(chartId, chartType, cachedData.labels, cachedData.values);
+                    }
+                    return; // 关键：既然数据已存在，直接退出函数
+                }
+
+                if (type === 'yes-no') {
+                    const stats = this.healthStats[disease];
+                    if (stats) {
+                        const { yes, no } = stats.count;
+                        this.renderChart(chartId, chartType, ['有', '无'], [yes, no]);
+                    }
+                } else if (type === 'year') {
+                    axios.get(requestUrl).then(res => {
+                        if (res.data.code === 1) {
+                            cacheStore[cacheKey] = res.data.data;
+                            const {year, people} = res.data.data;
+                            this.renderChart(chartId, chartType, year.map(y => y + '年'), people);
+                        }
+                    });
+                } else if (type === 'drug') {
+                    axios.get(requestUrl).then(res => {
+                        if (res.data.code === 1) {
+                            cacheStore[cacheKey] = res.data.data;
+                            const {yes, no} = res.data.data;
+                            this.renderChart(chartId, chartType, ['是', '否'], [yes, no]);
+                        }
+                    });
+                } else if (type === 'frequency') {
+                    const labels = this.propolisFrequencyData.chart.labels
+                    const values = this.propolisFrequencyData.chart.values
+                    this.renderChart(chartId, chartType, labels, values);
+                    const processedData = { labels, values };
+                    cacheStore[cacheKey] = processedData; // 将处理好的数据存入缓存
+                }
+            },
+            renderChart(containerId, chartType, labels, values) {
+                // 确保之前的实例被销毁，避免resize或重复渲染问题
+                const chartDom = document.getElementById(containerId);
+                echarts.dispose(chartDom);
+                const chart = echarts.init(chartDom);
+
+                let option = {};
+                if (chartType === 'pie') {
+                    option = {
+                        tooltip: {trigger: 'item'},
+                        series: [{
+                            type: 'pie',
+                            radius: '60%', // 稍微增大一点，让标签有空间
+                            data: labels.map((label, index) => ({name: label, value: values[index]})),
+                            // --- 添加的部分 开始 ---
+                            label: {
+                                show: true,
+                                // {b}: 数据名 (e.g., '有')
+                                // {c}: 数据值 (e.g., 30)
+                                // {d}: 百分比 (e.g., 25)
+                                // 您可以选择最适合的格式
+                                formatter: '{b}: {d}%'
+                            },
+                            emphasis: { // 高亮时的样式
+                                label: {
+                                    show: true,
+                                    fontSize: '16',
+                                    fontWeight: 'bold'
+                                }
+                            }
+                            // --- 添加的部分 结束 ---
+                        }]
+                    };
+                } else if (chartType === 'bar') {
+                    option = {
+                        xAxis: {type: 'category', data: labels},
+                        yAxis: {type: 'value'},
+                        tooltip: {trigger: 'axis'},
+                        series: [{
+                            data: values,
+                            type: 'bar',
+                            // --- 添加的部分 开始 ---
+                            label: {
+                                show: true,
+                                position: 'top' // 将标签显示在柱子顶部
+                            }
+                            // --- 添加的部分 结束 ---
+                        }]
+                    };
+                }
+                chart.setOption(option);
+            },
+            fetchEvalScore(eid) {
+                axios.get('/user/eval/admin/' + eid).then(res => {
+                    if (res.data.code === 1) {
+                        const raw = res.data.data;
+                        const total = Object.values(raw).reduce((a, b) => a + b, 0);
+                        this.evalScoreTables[eid] = [
+                            {
+                                label: '无效',
+                                count: raw[0] || 0,
+                                percent: ((raw[0] || 0) / total * 100).toFixed(1) + '%'
+                            },
+                            {
+                                label: '有效',
+                                count: raw[1] || 0,
+                                percent: ((raw[1] || 0) / total * 100).toFixed(1) + '%'
+                            },
+                            {
+                                label: '不详',
+                                count: raw[2] || 0,
+                                percent: ((raw[2] || 0) / total * 100).toFixed(1) + '%'
+                            },
+                            {label: '有效填写人数', count: total, percent: '---'}
+                        ];
+                    }
+                });
+            },
+            fetchAllEvalScores() {
+                for (let i = 0; i < 6; i++) {
+                    this.fetchEvalScore(i);
+                }
+            }
+        }
+    }).use(ElementPlus).mount('#app');
+</script>
+</body>
+
+</html>

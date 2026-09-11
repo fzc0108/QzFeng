@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>拍照上传</title>
+</head>
+<body>
+
+<div class="nav-button">
+    <i class="el-icon-s-home"></i>
+    <a href="/static/home-sec.html">返回</a>
+</div>
+
+
+<h2>拍照上传示例</h2>
+
+<!-- 摄像头预览 -->
+<video id="video" autoplay width="320" height="240"></video>
+<br><br>
+
+<!-- 拍照按钮 -->
+<button id="capture">拍照</button>
+<br><br>
+
+<!-- 画布用于保存照片 -->
+<canvas id="canvas" style="display:none;"></canvas>
+
+<!-- 显示预览图 -->
+<img id="photo" alt="拍照预览" width="320" height="240"/>
+
+<script>
+    const token = localStorage.getItem('Authorization');
+
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const photo = document.getElementById('photo');
+    const captureBtn = document.getElementById('capture');
+
+    // 获取摄像头访问权限
+    navigator.mediaDevices.getUserMedia({ video: true })
+        .then(stream => {
+            video.srcObject = stream;
+        })
+        .catch(err => {
+            alert("无法访问摄像头，请允许权限！");
+            console.error(err);
+        });
+
+    // 拍照功能
+    captureBtn.addEventListener('click', () => {
+        const context = canvas.getContext('2d');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        // 将图片转为 Blob 对象
+        canvas.toBlob(blob => {
+            const file = new File([blob], "photo.jpg", { type: 'image/jpeg' });
+            uploadImage(file);
+        }, 'image/jpeg', 0.9); // 质量 90%
+    });
+
+    // 图片上传函数
+    function uploadImage(file) {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        fetch("/user/checkup/uploads", {
+            method: "POST",
+            headers: {
+                'Authorization': token
+            },
+            body: formData
+        })
+            .then(response => {
+                if (response.ok) {
+                    return response.text(); // 或者 json()
+                }
+                throw new Error("上传失败");
+            })
+            .then(data => {
+                alert("上传成功：" + data);
+                photo.src = canvas.toDataURL("image/jpeg"); // 显示图片
+            })
+            .catch(error => {
+                console.error("错误：", error);
+                alert("上传出错：" + error.message);
+            });
+    }
+</script>
+</body>
+</html>
